@@ -1,12 +1,16 @@
 import { useEffect, useState } from "react";
 import Styles from "./TODO.module.css";
-import { dummy } from "./dummy";
+//import { dummy } from "./dummy";
 import axios from "axios";
 
 export function TODO(props) {
-	const [newTodo, setNewTodo] = useState("");
-	const [todoData, setTodoData] = useState(dummy);
+	const [newTodoTitle, setNewTodoTitle] = useState("");
+	const [newTodoDesc, setNewTodoDesc] = useState("");
+	const [todoData, setTodoData] = useState([]);
 	const [loading, setLoading] = useState(true);
+	const [editTodoId, setEditTodoId] = useState(null);
+	const [editTitle, setEditTitle] = useState("");
+	const [editDescription, setEditDesctiption] = useState("");
 
 	useEffect(() => {
 		const fetchTodo = async () => {
@@ -42,14 +46,17 @@ export function TODO(props) {
 				accept: "application/json",
 			},
 			data: {
-				title: newTodo,
+				title: newTodoTitle,
+				description: newTodoDesc,
 			},
 		};
 		axios
 			.request(options)
 			.then(function (response) {
 				console.log(response.data);
-				setTodoData((prevData) => [...prevData, response.data.newTodo]);
+				setTodoData([...todoData, response.data.newTodo]);
+				setNewTodoTitle("");
+				setNewTodoDesc("");
 			})
 			.catch((error) => {
 				console.log(error);
@@ -77,18 +84,14 @@ export function TODO(props) {
 			});
 	};
 
-	const updateTodo = (id) => {
-		const todoToUpdate = todoData.find((todo) => todo._id === id);
+	const updateTodo = (id, updatedData) => {
 		const options = {
 			method: "PATCH",
 			url: `http://localhost:8000/api/todo/${id}`,
 			headers: {
 				accept: "application/json",
 			},
-			data: {
-				...todoToUpdate,
-				done: !todoToUpdate.done,
-			},
+			data: updatedData,
 		};
 		axios
 			.request(options)
@@ -113,10 +116,21 @@ export function TODO(props) {
 					<input
 						className={Styles.todoInput}
 						type="text"
-						name="New Todo"
-						value={newTodo}
+						name="New Todo Ttile"
+						placeholder="Todo Ttitle"
+						value={newTodoTitle}
 						onChange={(event) => {
-							setNewTodo(event.target.value);
+							setNewTodoTitle(event.target.value);
+						}}
+					/>
+					<input
+						className={Styles.todoInput}
+						type="text"
+						name="New Todo Description"
+						placeholder="Todo Description"
+						value={newTodoDesc}
+						onChange={(event) => {
+							setNewTodoDesc(event.target.value);
 						}}
 					/>
 					<button
@@ -125,7 +139,8 @@ export function TODO(props) {
 						className={Styles.addButton}
 						onClick={() => {
 							addTodo();
-							setNewTodo("");
+							setNewTodoTitle("");
+							setNewTodoDesc("");
 						}}
 					>
 						+ New Todo
@@ -143,10 +158,69 @@ export function TODO(props) {
 									type="checkbox"
 									checked={entry.done}
 									onChange={() => {
-										updateTodo(entry._id);
+										updateTodo(entry._id, {
+											done: !entry.done,
+										});
 									}}
 								/>
-								{entry.title}
+								{editTodoId === entry._id ? (
+									<input
+										type="text"
+										value={editTitle}
+										onChange={(e) =>
+											setEditTitle(e.target.value)
+										}
+										style={{
+											width: "500px",
+											height: "35px",
+											fontSize: "large",
+											margin: "10px",
+										}}
+									/>
+								) : (
+									entry.title
+								)}
+								{editTodoId === entry._id ? (
+									<input
+										type="text"
+										value={editDescription}
+										placeholder="Description"
+										onChange={(e) =>
+											setEditDesctiption(e.target.value)
+										}
+										style={{
+											display: "block",
+											width: "500px",
+											height: "35px",
+											fontSize: "medium",
+											marginLeft: "38px",
+										}}
+									/>
+								) : (
+									<div style={{ whiteSpace: "pre-wrap" }}>
+										Description: {entry.description}
+									</div>
+								)}
+							</span>
+							<span
+								style={{ cursor: "pointer" }}
+								onClick={() => {
+									if (editTodoId === entry._id) {
+										updateTodo(entry._id, {
+											title: editTitle,
+											description: editDescription,
+										});
+										setEditTodoId(null);
+										setEditTitle("");
+										setEditDesctiption("");
+									} else {
+										setEditTodoId(entry._id);
+										setEditTitle(entry.title);
+										setEditDesctiption(entry.description);
+									}
+								}}
+							>
+								{editTodoId === entry._id ? "Save" : "Edit"}
 							</span>
 							<span
 								style={{ cursor: "pointer" }}
